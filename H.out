@@ -1,0 +1,4 @@
+&{H 0xc0000807e0 <nil> 0xc000080840 <nil> map[0xc0000808a0:0xc0000a4030] true}
+Attempting client connection
+Listening for peer communication on port 5007
+Listening for client on port 12352

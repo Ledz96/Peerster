@@ -1,0 +1,3 @@
+&{A 0xc00007c7e0 <nil> 0xc00007c840 <nil> map[0xc00007c8a0:0xc0000a0030] true}
+Attempting client connection
+Error: can't listen on client socket

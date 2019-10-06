@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/AlessandroBianchi/Peerster/client/client"
+	"github.com/AlessandroBianchi/Peerster/client/localclient"
 )
 
 func main() {
-	c := client.New()
+	c := localclient.New()
 
 	c.SetInfos()
 
