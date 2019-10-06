@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	gossippacket "github.com/AlessandroBianchi/Peerster/gossipPacket"
+	gossippacket "github.com/AlessandroBianchi/Peerster/gossippacket"
 	"github.com/AlessandroBianchi/Peerster/message"
 	"github.com/dedis/protobuf"
 )
@@ -61,7 +61,7 @@ func (g *gossiper) ListenForClients() {
 
 	clientConn, err := net.ListenUDP("udp4", g.clientAddr)
 	if err != nil {
-		fmt.Println("Error: can't listen on client socket")
+		fmt.Printf("Error: can't listen for clients on socket; %v\n", err)
 		os.Exit(-1)
 	}
 	g.clientConn = clientConn
@@ -100,7 +100,7 @@ func printClientMessage(msg message.SimpleMessage) {
 func (g *gossiper) ListenForPeers() {
 	udpConn, err := net.ListenUDP("udp4", g.udpAddr)
 	if err != nil {
-		fmt.Println("Error: can't listen on client socket")
+		fmt.Printf("Error: can't listen for peers on socket; %v", err)
 		os.Exit(-1)
 	}
 	g.udpConn = udpConn

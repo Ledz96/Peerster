@@ -1,3 +1,4 @@
-&{A 0xc00007c7e0 <nil> 0xc00007c840 <nil> map[0xc00007c8a0:0xc0000a0030] true}
+&{A 0xc0000767e0 <nil> 0xc000076840 <nil> map[0xc0000768a0:0xc000006040] true}
 Attempting client connection
-Error: can't listen on client socket
+Listening for client on port 12345
+Error: can't listen on peer socket listen udp4 127.0.0.1:5000: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.

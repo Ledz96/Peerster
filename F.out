@@ -1,4 +1,4 @@
-&{F 0xc0000727e0 <nil> 0xc000072840 <nil> map[0xc0000728a0:0xc000006040] true}
+&{F 0xc0000767e0 <nil> 0xc000076840 <nil> map[0xc0000768a0:0xc000006040] true}
 Attempting client connection
-Listening for peer communication on port 5005
 Listening for client on port 12350
+Error: can't listen on peer socket listen udp4 127.0.0.1:5005: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
