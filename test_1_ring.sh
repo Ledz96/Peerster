@@ -7,7 +7,7 @@ cd ..
 
 RED='\033[0;31m'
 NC='\033[0m'
-DEBUG="false"
+DEBUG="true"
 
 outputFiles=()
 message=Weather_is_clear
@@ -48,10 +48,12 @@ failed="F"
 
 if !(grep -q "CLIENT MESSAGE $message" "E.out") ; then
 	failed="T"
+	echo -e "Problem in E.out (no $message found)"
 fi
 
 if !(grep -q "CLIENT MESSAGE $message2" "B.out") ; then
   failed="T"
+  echo -e "Problem in B.out (no $message2) found"
 fi
 
 if [[ "$failed" == "T" ]] ; then
@@ -79,12 +81,15 @@ do
 	gossipPort=$(($gossipPort+1))
 	if !(grep -q "$msgLine" "${outputFiles[$i]}") ; then
    		failed="T"
+		echo -e "MSGLINE: No $msgLine in ${outputFiles[$i]}"
 	fi
 	if !(grep -q "$peersLine" "${outputFiles[$i]}") ; then
         failed="T"
+	echo -e "PEERSLINE: No $peersLine in ${outputFiles[$i]}"
     fi
 	if !(grep -q "$msgLine2" "${outputFiles[$i]}") ; then
         failed="T"
+	echo -e "MSGLINE2: No $msgLine2 in ${outputFiles[$i]}"
     fi
 done
 
