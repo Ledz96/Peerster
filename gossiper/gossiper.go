@@ -81,6 +81,7 @@ func (g *gossiper) ListenForClients() {
 		if nRead > 0 {
 			protobuf.Decode(packetBytes, msg)
 			printClientMessage(*msg)
+			(*g).PrintPeers()
 			packet := &gossippacket.GossipPacket{Simple: msg}
 			msg.OriginalName = g.name
 			msg.RelayPeerAddr = fmt.Sprintf("%v:%v", g.udpAddr.IP, g.udpAddr.Port)
@@ -129,6 +130,7 @@ func (g *gossiper) ListenForPeers() {
 				g.AddPeer(addr)
 			}
 			printPeerMessage(*packet.Simple)
+			(*g).PrintPeers()
 			packet.Simple.RelayPeerAddr = fmt.Sprintf("%v:%v", g.udpAddr.IP, g.udpAddr.Port)
 			g.broadcastMessage(packet, addr)
 		}
@@ -229,4 +231,10 @@ func (g *gossiper) isPeerKnown(testPeerAddr *net.UDPAddr) bool {
 
 func isSameAddress(addr1 *net.UDPAddr, addr2 *net.UDPAddr) bool {
 	return fmt.Sprintf("%v:%v", addr1.IP, addr1.Port) == fmt.Sprintf("%v:%v", addr2.IP, addr2.Port)
+}
+
+func (g gossiper) PrintPeers() {
+	for peer := range g.peers {
+		fmt.Printf("%v:%v\n", peer.IP, peer.Port)
+	}
 }
