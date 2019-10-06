@@ -234,7 +234,12 @@ func isSameAddress(addr1 *net.UDPAddr, addr2 *net.UDPAddr) bool {
 }
 
 func (g gossiper) PrintPeers() {
+	i := 0
 	for peer := range g.peers {
-		fmt.Printf("%v:%v\n", peer.IP, peer.Port)
+		if i == len(g.peers)	{	
+			fmt.Printf("%v:%v", peer.IP, peer.Port)
+		} else {
+			fmt.Printf("%v:%v,", peer.IP, peer.Port)
+		}
 	}
 }
