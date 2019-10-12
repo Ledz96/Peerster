@@ -246,10 +246,12 @@ do
     msgLine2="IN SYNC WITH 127.0.0.1:$nextPort"
 
     if !(grep -q "$msgLine1" "${outputFiles[$i]}") ; then
-        failed="T"
+        echo "Can't find: $msgLine1 in ${outputFiles[$i]}"
+	failed="T"
     fi
     if !(grep -q "$msgLine2" "${outputFiles[$i]}") ; then
-        failed="T"
+      	echo "Can't find: $msgLine2 in ${outputFiles[$i]}"
+	failed="T"
     fi
 	gossipPort=$(($gossipPort+1))
 done
