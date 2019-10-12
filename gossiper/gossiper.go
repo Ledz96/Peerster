@@ -43,7 +43,7 @@ type gossiper struct {
 	peers      map[string](*net.UDPConn)
 	simpleMode bool
 	myStatus   map[string]uint32
-	rumorMsgs  map[string][]*message.RumorMessage
+	rumorMsgs  map[string][]message.RumorMessage
 	channels   map[string][]chan gossippacket.GossipPacket
 }
 
@@ -52,7 +52,7 @@ func New() *gossiper {
 	g := gossiper{}
 	g.peers = make(map[string](*net.UDPConn))
 	g.myStatus = make(map[string]uint32)
-	g.rumorMsgs = make(map[string][]*message.RumorMessage)
+	g.rumorMsgs = make(map[string][]message.RumorMessage)
 	g.channels = make(map[string][]chan gossippacket.GossipPacket)
 	return &g
 }
@@ -342,7 +342,7 @@ func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status
 
 	for _, request := range msg.Want {
 		if g.myStatus[request.Identifier] > request.NextID {
-			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: g.rumorMsgs[request.Identifier][request.NextID], Status: nil, RelayPeer: g.udpAddr.String()}
+			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[request.Identifier][request.NextID], Status: nil, RelayPeer: g.udpAddr.String()}
 			g.sendPacket(gp, sender)
 			fmt.Println("COMPARE RESULT: Sent subsequent packet")
 			return have
@@ -380,12 +380,12 @@ func (g *gossiper) HandleClientMessages() {
 			printClientMessage(*msg)
 			g.PrintPeers()
 
-			rumorMsg := &message.RumorMessage{Origin: g.name, ID: messageID, Text: msg.Text}
+			rumorMsg := message.RumorMessage{Origin: g.name, ID: messageID, Text: msg.Text}
 			g.rumorMsgs[g.name] = append(g.rumorMsgs[g.name], rumorMsg)
 			messageID++
 
-			packet := &gossippacket.GossipPacket{Rumor: rumorMsg, RelayPeer: g.udpAddr.String()}
-			go g.rumorMonger(packet, nil)
+			packet := &gossippacket.GossipPacket{Rumor: &rumorMsg, RelayPeer: g.udpAddr.String()}
+			go g.rumorMonger(*packet, nil)
 		}
 	}
 }
@@ -427,7 +427,7 @@ func (g *gossiper) HandlePeersMessages() {
 				if !g.isMessageKnown(*packet.Rumor) {
 
 					//Add unknown message to my list of messages and sort them
-					g.rumorMsgs[packet.Rumor.Origin] = append(g.rumorMsgs[packet.Rumor.Origin], packet.Rumor)
+					g.rumorMsgs[packet.Rumor.Origin] = append(g.rumorMsgs[packet.Rumor.Origin], *packet.Rumor)
 					sort.Slice(g.rumorMsgs[packet.Rumor.Origin], func(i, j int) bool {
 						return g.rumorMsgs[packet.Rumor.Origin][i].ID < g.rumorMsgs[packet.Rumor.Origin][j].ID
 					})
@@ -444,7 +444,7 @@ func (g *gossiper) HandlePeersMessages() {
 						g.myStatus[packet.Rumor.Origin] = nextID
 					}
 
-					go g.rumorMonger(packet, addr)
+					go g.rumorMonger(*packet, addr)
 				} else {
 					fmt.Println("Known message received. Ignoring.............")
 				}
@@ -463,7 +463,7 @@ func (g *gossiper) HandlePeersMessages() {
 	}
 }
 
-func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPAddr) {
+func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAddr) {
 	//If message comes from peer, doesn't send it back to peer
 	var contacted []string
 	if addr != nil {
@@ -506,7 +506,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 		//Sends the packet to the selected peer
 		printOutgoingRumorMessage(peer)
 		packet.RelayPeer = g.udpAddr.String()
-		g.sendPacket(packet, peer)
+		g.sendPacket(&packet, peer)
 
 		//Checks if rumor mongering process is done or if it has to select another peer
 		if packet.Rumor == nil {
