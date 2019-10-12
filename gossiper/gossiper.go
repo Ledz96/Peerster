@@ -18,6 +18,7 @@ import (
 const buffsize int = 1024
 
 var messageID uint32
+var timerLength time.Duration
 
 type status int
 
@@ -30,6 +31,7 @@ const (
 func init() {
 	rand.Seed(time.Now().UnixNano())
 	messageID = 0
+	timerLength = 10
 }
 
 type gossiper struct {
@@ -386,7 +388,6 @@ func (g *gossiper) HandleClientMessages() {
 
 			packet := &gossippacket.GossipPacket{Rumor: rumorMsg}
 			go g.rumorMonger(packet, nil)
-			return
 		}
 	}
 }
@@ -399,7 +400,7 @@ func (g *gossiper) HandlePeersMessages() {
 	packet := &gossippacket.GossipPacket{}
 
 	for {
-		nRead, _, err := g.udpConn.ReadFromUDP(packetBytes)
+		nRead, sender, err := g.udpConn.ReadFromUDP(packetBytes)
 		if err != nil {
 			fmt.Println("Error: read from buffer failed.")
 			os.Exit(-1)
@@ -407,11 +408,12 @@ func (g *gossiper) HandlePeersMessages() {
 
 		if nRead > 0 {
 			protobuf.Decode(packetBytes, packet)
-			addr, err := net.ResolveUDPAddr("udp4", packet.Simple.RelayPeerAddr)
+			addr, err := net.ResolveUDPAddr("udp4", sender.String())
 			if err != nil {
 				fmt.Println("Error: couldn't resolve sender's address")
 				os.Exit(-1)
 			}
+			fmt.Println("Checking if peer is known")
 			if !g.isPeerKnown(addr) {
 				g.AddPeer(addr)
 			}
@@ -504,7 +506,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 		g.sendPacket(packet, peer)
 
 		//Checks if rumor mongering process is done or if it has to select another peer
-		if !g.isMongeringDone(c, peer) {
+		if g.isMongeringDone(c, peer) {
 			return
 		}
 
@@ -539,7 +541,7 @@ func (g gossiper) sendPacket(packet *gossippacket.GossipPacket, addr *net.UDPAdd
 }
 
 func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer *net.UDPAddr) bool {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(timerLength * time.Second)
 
 	select {
 	case gp := <-c:
@@ -557,4 +559,15 @@ func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer *net.U
 	}
 
 	return false
+}
+
+func (g *gossiper) AntiEntropy() {
+	ticker := time.NewTicker(timerLength * time.Second)
+
+	for {
+		select {
+		case <-ticker.C:
+			g.sendPacket(g.makeStatusPacket(), g.selectRandomPeer())
+		}
+	}
 }
