@@ -452,6 +452,7 @@ func (g *gossiper) HandlePeersMessages() {
 				printStatusPacket(*packet.Status, addr)
 				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
 					for _, ch := range g.channels[addr.String()] {
+						fmt.Printf("Inserting in the channel: %v\n", packet)
 						ch <- packet
 					}
 				} else {
