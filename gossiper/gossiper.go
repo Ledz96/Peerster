@@ -503,6 +503,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 		g.sendPacket(packet, peer)
 
 		//Checks if rumor mongering process is done or if it has to select another peer
+		fmt.Printf("Checking if mongering is done for message: %v", packet.Rumor.Text)
 		if g.isMongeringDone(c, peer) {
 			return
 		}
@@ -545,8 +546,10 @@ func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer string
 		s := g.compareStatus(*gp.Status, peer)
 		switch s {
 		case have:
+			fmt.Println("Sent subsequent packet")
 			return g.isMongeringDone(c, peer)
 		case want:
+			fmt.Println("Need something from target")
 			return true
 		case equal:
 			return !keepMongering()
