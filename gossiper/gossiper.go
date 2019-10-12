@@ -545,6 +545,7 @@ func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer string
 	case gp := <-c:
 		if gp.Status == nil {
 			fmt.Println("ERROR: NOT STATUS PACKET SENT IN STATUS CHANNEL?!")
+			fmt.Println(gp)
 			os.Exit(-1)
 		}
 		s := g.compareStatus(*gp.Status, peer)
