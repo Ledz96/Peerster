@@ -222,8 +222,8 @@ func printStatusPacket(status message.StatusPacket, relay *net.UDPAddr) {
 }
 
 //printCoinFlipSuccess prints result of coin flip if rumor mongering keeps going after it
-func printCoinFlipSuccess(destination *net.UDPAddr) {
-	fmt.Println("FLIPPED COIN sending rumor to " + destination.String())
+func printCoinFlipSuccess(destination string) {
+	fmt.Println("FLIPPED COIN sending rumor to " + destination)
 }
 
 //printSyncWith prints a message when it's up to date with a peer it received a status message from
@@ -489,6 +489,11 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 			}
 		}
 
+		coin := false
+		if coin {
+			printCoinFlipSuccess(peer)
+		}
+
 		//Add a channel to get status message linked to  the peer
 		c := make(chan gossippacket.GossipPacket, 1)
 		g.channels[peer] = append(g.channels[peer], c)
@@ -514,7 +519,8 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 			os.Exit(-1)
 		}
 		fmt.Printf("Checking if mongering is done for message: %v\n", packet.Rumor.Text)
-		if g.isMongeringDone(c, peer) {
+		done, coin := g.isMongeringDone(c, peer)
+		if done {
 			return
 		}
 
@@ -548,7 +554,8 @@ func (g gossiper) sendPacket(packet *gossippacket.GossipPacket, addr string) {
 	}
 }
 
-func (g gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string) bool {
+//isMongeringDone gets the ack, handles it and then tells the caller if the message must be mongered again. In case it does, the second boolean tells if it happened because of a coin flip
+func (g gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string) (bool, bool) {
 	ticker := time.NewTicker(timerLength * time.Second)
 
 	select {
@@ -564,15 +571,18 @@ func (g gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string)
 		case have:
 			return g.isMongeringDone(c, peer)
 		case want:
-			return true
+			return true, false
 		case equal:
-			return !keepMongering()
+			if keepMongering() {
+				return false, true
+			}
+			return true, false
 		}
 	case <-ticker.C:
-		return false
+		return false, false
 	}
 
-	return false
+	return false, false
 }
 
 func (g *gossiper) AntiEntropy() {
