@@ -1,10 +1,13 @@
 package gossippacket
 
-import "github.com/AlessandroBianchi/Peerster/message"
+import (
+	"github.com/AlessandroBianchi/Peerster/message"
+)
 
 //GossipPacket is a packet to send through gossiping. Contains a SimpleMessage.
 type GossipPacket struct {
-	Simple *message.SimpleMessage
-	Rumor  *message.RumorMessage
-	Status *message.StatusPacket
+	Simple    *message.SimpleMessage
+	Rumor     *message.RumorMessage
+	Status    *message.StatusPacket
+	RelayPeer string
 }

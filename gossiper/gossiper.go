@@ -40,20 +40,20 @@ type gossiper struct {
 	udpConn    *net.UDPConn
 	clientAddr *net.UDPAddr
 	clientConn *net.UDPConn
-	peers      map[*net.UDPAddr](*net.UDPConn)
+	peers      map[string](*net.UDPConn)
 	simpleMode bool
 	myStatus   map[string]uint32
 	rumorMsgs  map[string][]*message.RumorMessage
-	channels   map[*net.UDPAddr][]chan *gossippacket.GossipPacket
+	channels   map[string][]chan *gossippacket.GossipPacket
 }
 
 //New creates a new gossiper
 func New() *gossiper {
 	g := gossiper{}
-	g.peers = make(map[*net.UDPAddr](*net.UDPConn))
+	g.peers = make(map[string](*net.UDPConn))
 	g.myStatus = make(map[string]uint32)
 	g.rumorMsgs = make(map[string][]*message.RumorMessage)
-	g.channels = make(map[*net.UDPAddr][]chan *gossippacket.GossipPacket)
+	g.channels = make(map[string][]chan *gossippacket.GossipPacket)
 	return &g
 }
 
@@ -72,7 +72,7 @@ func (g *gossiper) SetInfos() {
 			fmt.Println("Error: could not connect to given peer")
 			os.Exit(-1)
 		}
-		g.peers[peerAddr] = peerConn
+		g.peers[peerAddr.String()] = peerConn
 	}
 }
 
@@ -83,7 +83,7 @@ func (g *gossiper) AddPeer(peerAddr *(net.UDPAddr)) {
 		fmt.Println("Error: could not connect to given peer")
 		os.Exit(-1)
 	}
-	g.peers[peerAddr] = peerConn
+	g.peers[peerAddr.String()] = peerConn
 }
 
 func (g *gossiper) ConnectToClient() {
@@ -178,11 +178,11 @@ func (g *gossiper) SimpleHandlePeersMessages() {
 func (g *gossiper) broadcastSimpleMessage(packet *gossippacket.GossipPacket, origin *net.UDPAddr) {
 	for addr, conn := range g.peers {
 		if origin != nil {
-			if isSameAddress(addr, origin) {
+			if addr == origin.String() {
 				continue
 			}
 		}
-		fmt.Printf("Sending to %v:%v\n", addr.IP, addr.Port)
+		fmt.Println("Sending to " + addr)
 		packetBytes, err := protobuf.Encode(packet)
 		if err != nil {
 			fmt.Println("Error in encoding the message")
@@ -208,8 +208,8 @@ func printIncomingRumorMessage(msg message.RumorMessage, relay *net.UDPAddr) {
 }
 
 //printOutgoingRumorMessage prints rumor messages before mongering
-func printOutgoingRumorMessage(destination *net.UDPAddr) {
-	fmt.Println("MONGERING with " + destination.String())
+func printOutgoingRumorMessage(destination string) {
+	fmt.Println("MONGERING with " + destination)
 }
 
 //printStatusPacket prints a status packet received
@@ -218,6 +218,7 @@ func printStatusPacket(status message.StatusPacket, relay *net.UDPAddr) {
 	for _, nameIDPair := range status.Want {
 		fmt.Printf(" peer %s nextID %v", nameIDPair.Identifier, nameIDPair.NextID)
 	}
+	fmt.Printf("\n")
 }
 
 //printCoinFlipSuccess prints result of coin flip if rumor mongering keeps going after it
@@ -226,8 +227,8 @@ func printCoinFlipSuccess(destination *net.UDPAddr) {
 }
 
 //printSyncWith prints a message when it's up to date with a peer it received a status message from
-func printSyncWith(sender *net.UDPAddr) {
-	fmt.Println("IN SYNC WITH ", sender.String())
+func printSyncWith(sender string) {
+	fmt.Println("IN SYNC WITH ", sender)
 }
 
 /*
@@ -285,7 +286,7 @@ func getInfosFromCL() (string, *net.UDPAddr, *net.UDPAddr, []*net.UDPAddr, bool)
 
 func (g *gossiper) isPeerKnown(testPeerAddr *net.UDPAddr) bool {
 	for addr := range g.peers {
-		if testPeerAddr.String() == addr.String() {
+		if testPeerAddr.String() == addr {
 			return true
 		}
 	}
@@ -293,15 +294,10 @@ func (g *gossiper) isPeerKnown(testPeerAddr *net.UDPAddr) bool {
 	return false
 }
 
-func isSameAddress(addr1 *net.UDPAddr, addr2 *net.UDPAddr) bool {
-	//	return fmt.Sprintf("%v:%v", addr1.IP, addr1.Port) == fmt.Sprintf("%v:%v", addr2.IP, addr2.Port)
-	return addr1.String() == addr2.String()
-}
-
 func (g gossiper) PrintPeers() {
 	var peersSlice []string
 	for peer := range g.peers {
-		peersSlice = append(peersSlice, peer.String())
+		peersSlice = append(peersSlice, peer)
 	}
 	fmt.Println(strings.Join(peersSlice, ","))
 }
@@ -310,9 +306,9 @@ func (g gossiper) isMessageKnown(rumorMsg message.RumorMessage) bool {
 	return g.myStatus[rumorMsg.Origin] > rumorMsg.ID
 }
 
-func (g gossiper) selectRandomPeer() *net.UDPAddr { //Doesn't check that the selected peer is not the sender!!!
+func (g gossiper) selectRandomPeer() string { //Doesn't check that the selected peer is not the sender!!!
 	i := rand.Intn(len(g.peers))
-	var addr *net.UDPAddr
+	var addr string
 	for addr = range g.peers {
 		i--
 		if i == 0 {
@@ -341,12 +337,12 @@ func keepMongering() bool {
 	return (rand.Int() % 2) == 1
 }
 
-func (g *gossiper) compareStatus(msg message.StatusPacket, sender *net.UDPAddr) status {
+func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status {
 	needMessages := false
 
 	for _, request := range msg.Want {
 		if g.myStatus[request.Identifier] > request.NextID {
-			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: g.rumorMsgs[request.Identifier][request.NextID], Status: nil}
+			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: g.rumorMsgs[request.Identifier][request.NextID], Status: nil, RelayPeer: g.udpAddr.String()}
 			g.sendPacket(gp, sender)
 			return have
 		}
@@ -386,7 +382,7 @@ func (g *gossiper) HandleClientMessages() {
 			g.rumorMsgs[g.name] = append(g.rumorMsgs[g.name], rumorMsg)
 			messageID++
 
-			packet := &gossippacket.GossipPacket{Rumor: rumorMsg}
+			packet := &gossippacket.GossipPacket{Rumor: rumorMsg, RelayPeer: g.udpAddr.String()}
 			go g.rumorMonger(packet, nil)
 		}
 	}
@@ -400,7 +396,7 @@ func (g *gossiper) HandlePeersMessages() {
 	packet := &gossippacket.GossipPacket{}
 
 	for {
-		nRead, sender, err := g.udpConn.ReadFromUDP(packetBytes)
+		nRead, _, err := g.udpConn.ReadFromUDP(packetBytes)
 		if err != nil {
 			fmt.Println("Error: read from buffer failed.")
 			os.Exit(-1)
@@ -408,7 +404,7 @@ func (g *gossiper) HandlePeersMessages() {
 
 		if nRead > 0 {
 			protobuf.Decode(packetBytes, packet)
-			addr, err := net.ResolveUDPAddr("udp4", sender.String())
+			addr, err := net.ResolveUDPAddr("udp4", packet.RelayPeer)
 			if err != nil {
 				fmt.Println("Error: couldn't resolve sender's address")
 				os.Exit(-1)
@@ -425,7 +421,7 @@ func (g *gossiper) HandlePeersMessages() {
 			case message.Rumor:
 				printIncomingRumorMessage(*packet.Rumor, addr)
 
-				g.sendPacket(g.makeStatusPacket(), addr)
+				g.sendPacket(g.makeStatusPacket(), addr.String())
 				if !g.isMessageKnown(*packet.Rumor) {
 
 					//Add unknown message to my list of messages and sort them
@@ -450,12 +446,12 @@ func (g *gossiper) HandlePeersMessages() {
 				}
 			case message.Status:
 				printStatusPacket(*packet.Status, addr)
-				if _, ok := g.channels[addr]; ok { //Need control on possible empty array?
-					for _, ch := range g.channels[addr] {
+				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
+					for _, ch := range g.channels[addr.String()] {
 						ch <- packet
 					}
 				} else {
-					g.compareStatus(*packet.Status, addr)
+					g.compareStatus(*packet.Status, addr.String())
 				}
 			}
 		}
@@ -480,7 +476,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 		for !valid {
 			valid = true
 			for _, contactedPeer := range contacted {
-				if contactedPeer == peer.String() {
+				if contactedPeer == peer {
 					valid = false
 					peer = g.selectRandomPeer()
 					break
@@ -503,6 +499,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 
 		//Sends the packet to the selected peer
 		printOutgoingRumorMessage(peer)
+		packet.RelayPeer = g.udpAddr.String()
 		g.sendPacket(packet, peer)
 
 		//Checks if rumor mongering process is done or if it has to select another peer
@@ -510,7 +507,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 			return
 		}
 
-		contacted = append(contacted, peer.String())
+		contacted = append(contacted, peer)
 	}
 
 }
@@ -522,11 +519,11 @@ func (g gossiper) makeStatusPacket() *gossippacket.GossipPacket {
 		want = append(want, mystat)
 	}
 	peerStatus := &message.StatusPacket{Want: want}
-	gp := &gossippacket.GossipPacket{Simple: nil, Rumor: nil, Status: peerStatus}
+	gp := &gossippacket.GossipPacket{Simple: nil, Rumor: nil, Status: peerStatus, RelayPeer: g.udpAddr.String()}
 	return gp
 }
 
-func (g gossiper) sendPacket(packet *gossippacket.GossipPacket, addr *net.UDPAddr) {
+func (g gossiper) sendPacket(packet *gossippacket.GossipPacket, addr string) {
 	packetBytes, err := protobuf.Encode(packet)
 	if err != nil {
 		fmt.Println("Error in encoding the message")
@@ -540,7 +537,7 @@ func (g gossiper) sendPacket(packet *gossippacket.GossipPacket, addr *net.UDPAdd
 	}
 }
 
-func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer *net.UDPAddr) bool {
+func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer string) bool {
 	ticker := time.NewTicker(timerLength * time.Second)
 
 	select {
