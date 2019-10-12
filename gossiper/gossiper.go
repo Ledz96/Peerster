@@ -470,6 +470,8 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 		contacted = append(contacted, addr.String())
 	}
 
+	coin := false
+
 	for {
 		//Select the random peer in a smart way
 		if len(contacted) == len(g.peers) {
@@ -489,7 +491,6 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 			}
 		}
 
-		coin := false
 		if coin {
 			printCoinFlipSuccess(peer)
 		}
@@ -519,7 +520,8 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 			os.Exit(-1)
 		}
 		fmt.Printf("Checking if mongering is done for message: %v\n", packet.Rumor.Text)
-		done, coin := g.isMongeringDone(c, peer)
+		var done bool
+		done, coin = g.isMongeringDone(c, peer)
 		if done {
 			return
 		}
@@ -591,7 +593,10 @@ func (g *gossiper) AntiEntropy() {
 	for {
 		select {
 		case <-ticker.C:
-			g.sendPacket(g.makeStatusPacket(), g.selectRandomPeer())
+			peer := g.selectRandomPeer()
+			fmt.Println("Firing Anti-Entropy Message towards " + peer + "!")
+			printStatusPacket(*g.makeStatusPacket().Status, g.udpAddr)
+			g.sendPacket(g.makeStatusPacket(), peer)
 		}
 	}
 }
