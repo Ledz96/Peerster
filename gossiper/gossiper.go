@@ -489,7 +489,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 		}
 
 		//Add a channel to get status message linked to  the peer
-		c := make(chan *gossippacket.GossipPacket)
+		c := make(chan *gossippacket.GossipPacket, 1)
 		g.channels[peer] = append(g.channels[peer], c)
 
 		//At the end of the function, deletes the channel
