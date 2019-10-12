@@ -9,6 +9,11 @@ func main() {
 
 	g.SetInfos()
 
-	go g.ListenForClients()
-	g.ListenForPeers()
+	if g.Simple() {
+		go g.SimpleHandleClientMessages()
+		g.SimpleHandlePeersMessages()
+	} else {
+		go g.HandleClientMessages()
+		g.HandlePeersMessages()
+	}
 }

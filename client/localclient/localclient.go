@@ -15,7 +15,7 @@ const buffsize int = 1024
 type client struct {
 	udpAddr *net.UDPAddr
 	udpConn *net.UDPConn
-	msg     message.SimpleMessage
+	msg     message.Message
 }
 
 //New creates a new client
@@ -26,7 +26,7 @@ func New() *client {
 
 //SetInfos read infos from command line and stores them in the structure
 func (c *client) SetInfos() {
-	c.udpAddr, c.msg.Contents = getInfosFromCL()
+	c.udpAddr, c.msg.Text = getInfosFromCL()
 }
 
 func (c *client) ConnectToServer() {
