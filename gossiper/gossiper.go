@@ -344,9 +344,11 @@ func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status
 		if g.myStatus[request.Identifier] > request.NextID {
 			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: g.rumorMsgs[request.Identifier][request.NextID], Status: nil, RelayPeer: g.udpAddr.String()}
 			g.sendPacket(gp, sender)
+			fmt.Println("COMPARE RESULT: Sent subsequent packet")
 			return have
 		}
 		if g.myStatus[request.Identifier] < request.NextID {
+			fmt.Println("COMPARE RESULT: Need something from target")
 			needMessages = true
 		}
 	}
@@ -449,12 +451,12 @@ func (g *gossiper) HandlePeersMessages() {
 			case message.Status:
 				printStatusPacket(*packet.Status, addr)
 				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
-					for _, ch := range g.channels[addr.String()] {
+					/*for _, ch := range g.channels[addr.String()] {
 						if packet.Rumor != nil {
 							fmt.Println("I AM PUTTING SOMETHING WEIRD: " + packet.Rumor.Text)
 						}
 						ch <- packet
-					}
+					}*/
 				} else {
 					g.compareStatus(*packet.Status, addr.String())
 				}
@@ -556,10 +558,8 @@ func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer string
 		s := g.compareStatus(*gp.Status, peer)
 		switch s {
 		case have:
-			fmt.Println("COMPARE RESULT: Sent subsequent packet")
 			return g.isMongeringDone(c, peer)
 		case want:
-			fmt.Println("COMPARE RESULT: Need something from target")
 			return true
 		case equal:
 			return !keepMongering()
