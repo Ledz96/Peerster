@@ -383,6 +383,7 @@ func (g *gossiper) HandleClientMessages() {
 			rumorMsg := message.RumorMessage{Origin: g.name, ID: messageID, Text: msg.Text}
 			g.rumorMsgs[g.name] = append(g.rumorMsgs[g.name], rumorMsg)
 			messageID++
+			g.myStatus[g.name] = messageID
 
 			packet := &gossippacket.GossipPacket{Rumor: &rumorMsg, RelayPeer: g.udpAddr.String()}
 			go g.rumorMonger(*packet, nil)
