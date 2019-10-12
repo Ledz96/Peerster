@@ -363,7 +363,7 @@ func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status
 		if !present {
 			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[origin][0], Status: nil, RelayPeer: g.udpAddr.String()}
 			g.sendPacket(gp, sender)
-			fmt.Println("COMPARE RESULT: Sent subsequent packet")
+			fmt.Println("COMPARE RESULT: Sent unknown packet")
 			return have
 		}
 	}
@@ -439,7 +439,6 @@ func (g *gossiper) HandlePeersMessages() {
 			case message.Rumor:
 				printIncomingRumorMessage(*packet.Rumor, addr)
 
-				g.sendPacket(g.makeStatusPacket(), addr.String())
 				if !g.isMessageKnown(*packet.Rumor) {
 
 					//Add unknown message to my list of messages and sort them
@@ -465,9 +464,9 @@ func (g *gossiper) HandlePeersMessages() {
 					}
 
 					go g.rumorMonger(*packet, addr)
-				} else {
-					fmt.Println("Known message received. Ignoring.............")
 				}
+
+				g.sendPacket(g.makeStatusPacket(), addr.String())
 			case message.Status:
 				printStatusPacket(*packet.Status, addr)
 				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
