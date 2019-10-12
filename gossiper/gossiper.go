@@ -509,6 +509,10 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 		g.sendPacket(packet, peer)
 
 		//Checks if rumor mongering process is done or if it has to select another peer
+		if packet.Rumor == nil {
+			fmt.Println("ERROR: NON RUMOR PACKET IS BEING RUMOR MONGERED?!")
+			os.Exit(-1)
+		}
 		fmt.Printf("Checking if mongering is done for message: %v\n", packet.Rumor.Text)
 		if g.isMongeringDone(c, peer) {
 			return
