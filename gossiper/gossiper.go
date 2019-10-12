@@ -44,7 +44,7 @@ type gossiper struct {
 	simpleMode bool
 	myStatus   map[string]uint32
 	rumorMsgs  map[string][]*message.RumorMessage
-	channels   map[string][]chan *gossippacket.GossipPacket
+	channels   map[string][]chan gossippacket.GossipPacket
 }
 
 //New creates a new gossiper
@@ -53,7 +53,7 @@ func New() *gossiper {
 	g.peers = make(map[string](*net.UDPConn))
 	g.myStatus = make(map[string]uint32)
 	g.rumorMsgs = make(map[string][]*message.RumorMessage)
-	g.channels = make(map[string][]chan *gossippacket.GossipPacket)
+	g.channels = make(map[string][]chan gossippacket.GossipPacket)
 	return &g
 }
 
@@ -453,7 +453,7 @@ func (g *gossiper) HandlePeersMessages() {
 				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
 					for _, ch := range g.channels[addr.String()] {
 						fmt.Printf("ACCESSING CHANNEL %v ; WRITING %v\n", ch, packet)
-						ch <- packet
+						ch <- *packet
 					}
 				} else {
 					g.compareStatus(*packet.Status, addr.String())
@@ -490,7 +490,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 		}
 
 		//Add a channel to get status message linked to  the peer
-		c := make(chan *gossippacket.GossipPacket, 1)
+		c := make(chan gossippacket.GossipPacket, 1)
 		g.channels[peer] = append(g.channels[peer], c)
 
 		//At the end of the function, deletes the channel
@@ -544,7 +544,7 @@ func (g gossiper) sendPacket(packet *gossippacket.GossipPacket, addr string) {
 	}
 }
 
-func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer string) bool {
+func (g gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string) bool {
 	ticker := time.NewTicker(timerLength * time.Second)
 
 	select {
