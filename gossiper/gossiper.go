@@ -448,9 +448,8 @@ func (g *gossiper) HandlePeersMessages() {
 				printStatusPacket(*packet.Status, addr)
 				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
 					for _, ch := range g.channels[addr.String()] {
-						fmt.Println("About to put in something!")
 						if packet.Rumor != nil {
-							fmt.Println(packet.Rumor.Text)
+							fmt.Println("I AM PUTTING SOMETHING WEIRD: " + packet.Rumor.Text)
 						}
 						ch <- packet
 					}
