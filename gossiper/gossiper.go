@@ -451,12 +451,9 @@ func (g *gossiper) HandlePeersMessages() {
 			case message.Status:
 				printStatusPacket(*packet.Status, addr)
 				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
-					/*for _, ch := range g.channels[addr.String()] {
-						if packet.Rumor != nil {
-							fmt.Println("I AM PUTTING SOMETHING WEIRD: " + packet.Rumor.Text)
-						}
+					for _, ch := range g.channels[addr.String()] {
 						ch <- packet
-					}*/
+					}
 				} else {
 					g.compareStatus(*packet.Status, addr.String())
 				}
@@ -500,6 +497,7 @@ func (g *gossiper) rumorMonger(packet *gossippacket.GossipPacket, addr *net.UDPA
 			for i, channel := range g.channels[peer] {
 				if channel == c {
 					g.channels[peer] = append(g.channels[peer][:i], g.channels[peer][i+1:]...)
+					break
 				}
 			}
 		}()
