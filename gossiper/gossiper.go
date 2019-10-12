@@ -452,7 +452,7 @@ func (g *gossiper) HandlePeersMessages() {
 				printStatusPacket(*packet.Status, addr)
 				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
 					for _, ch := range g.channels[addr.String()] {
-						fmt.Printf("Inserting in the channel: %v\n", packet)
+						fmt.Printf("ACCESSING CHANNEL %v ; WRITING %v\n", ch, packet)
 						ch <- packet
 					}
 				} else {
@@ -549,6 +549,7 @@ func (g gossiper) isMongeringDone(c chan *gossippacket.GossipPacket, peer string
 
 	select {
 	case gp := <-c:
+		fmt.Printf("ACCESSED CHANNEL %v ; READING %v\n", c, gp)
 		if gp.Status == nil {
 			fmt.Println("ERROR: NOT STATUS PACKET SENT IN STATUS CHANNEL?!")
 			fmt.Println(gp.Rumor.Text)
