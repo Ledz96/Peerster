@@ -30,7 +30,7 @@ const (
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	messageID = 0
+	messageID = 1
 	timerLength = 10
 }
 
@@ -342,7 +342,7 @@ func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status
 
 	for _, request := range msg.Want {
 		if g.myStatus[request.Identifier] > request.NextID {
-			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[request.Identifier][request.NextID], Status: nil, RelayPeer: g.udpAddr.String()}
+			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[request.Identifier][request.NextID-1], Status: nil, RelayPeer: g.udpAddr.String()}
 			g.sendPacket(gp, sender)
 			fmt.Println("COMPARE RESULT: Sent subsequent packet")
 			return have
@@ -433,16 +433,20 @@ func (g *gossiper) HandlePeersMessages() {
 						return g.rumorMsgs[packet.Rumor.Origin][i].ID < g.rumorMsgs[packet.Rumor.Origin][j].ID
 					})
 
+					//If this is the first message I get, I update the one I'm looking for before doing the check
+					if g.myStatus[packet.Rumor.Origin] == 0 {
+						g.myStatus[packet.Rumor.Origin] = 1
+					}
 					//If I have received the message I was waiting for, I update my status
 					if packet.Rumor.ID == g.myStatus[packet.Rumor.Origin] {
 						var nextID uint32
-						for nextID = g.myStatus[packet.Rumor.Origin] + 1; nextID < uint32(len(g.rumorMsgs[packet.Rumor.Origin])); nextID++ {
+						for nextID = g.myStatus[packet.Rumor.Origin]; nextID < uint32(len(g.rumorMsgs[packet.Rumor.Origin])); nextID++ {
 							if g.rumorMsgs[packet.Rumor.Origin][nextID].ID != nextID {
 								break
 							}
 						}
 
-						g.myStatus[packet.Rumor.Origin] = nextID
+						g.myStatus[packet.Rumor.Origin] = nextID + 1
 					}
 
 					go g.rumorMonger(*packet, addr)
