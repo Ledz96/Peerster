@@ -352,6 +352,21 @@ func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status
 			needMessages = true
 		}
 	}
+	for origin := range g.myStatus {
+		present := false
+		for _, val := range msg.Want {
+			if val.Identifier == origin {
+				present = true
+			}
+		}
+
+		if !present {
+			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[origin][0], Status: nil, RelayPeer: g.udpAddr.String()}
+			g.sendPacket(gp, sender)
+			fmt.Println("COMPARE RESULT: Sent subsequent packet")
+			return have
+		}
+	}
 	if needMessages {
 		g.sendPacket(g.makeStatusPacket(), sender)
 		return want
