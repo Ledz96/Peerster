@@ -443,6 +443,8 @@ func (g *gossiper) HandlePeersMessages() {
 					}
 
 					go g.rumorMonger(packet, addr)
+				} else {
+					fmt.Println("Known message received. Ignoring.............")
 				}
 			case message.Status:
 				printStatusPacket(*packet.Status, addr)
