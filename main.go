@@ -14,7 +14,9 @@ func main() {
 		g.SimpleHandlePeersMessages()
 	} else {
 		go g.HandleClientMessages()
-		go g.AntiEntropy()
+		if g.IsAntiEntropyActive() {
+			go g.AntiEntropy()
+		}
 		g.HandlePeersMessages()
 	}
 }

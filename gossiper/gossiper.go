@@ -35,16 +35,17 @@ func init() {
 }
 
 type gossiper struct {
-	name       string
-	udpAddr    *net.UDPAddr
-	udpConn    *net.UDPConn
-	clientAddr *net.UDPAddr
-	clientConn *net.UDPConn
-	peers      map[string](*net.UDPConn)
-	simpleMode bool
-	myStatus   map[string]uint32
-	rumorMsgs  map[string][]message.RumorMessage
-	channels   map[string][]chan gossippacket.GossipPacket
+	name              string
+	udpAddr           *net.UDPAddr
+	udpConn           *net.UDPConn
+	clientAddr        *net.UDPAddr
+	clientConn        *net.UDPConn
+	peers             map[string](*net.UDPConn)
+	simpleMode        bool
+	myStatus          map[string]uint32
+	rumorMsgs         map[string][]message.RumorMessage
+	channels          map[string][]chan gossippacket.GossipPacket
+	antiEntropyLength time.Duration
 }
 
 //New creates a new gossiper
@@ -62,10 +63,21 @@ func (g gossiper) Simple() bool {
 	return g.simpleMode
 }
 
+func (g gossiper) IsAntiEntropyActive() bool {
+	return g.antiEntropyLength > 0
+}
+
 //SetInfos read infos from command line and stores them in the structure
 func (g *gossiper) SetInfos() {
 	var peersAddr []*net.UDPAddr
-	g.name, g.udpAddr, g.clientAddr, peersAddr, g.simpleMode = getInfosFromCL()
+	var antiEntropy int64
+
+	g.name, g.udpAddr, g.clientAddr, peersAddr, g.simpleMode, antiEntropy = getInfosFromCL()
+
+	if antiEntropy > 0 {
+		g.antiEntropyLength = time.Duration(antiEntropy)
+	}
+
 	for _, peerAddr := range peersAddr {
 		peerConn, err := net.DialUDP("udp4", nil, peerAddr)
 		if err != nil {
@@ -249,12 +261,13 @@ func (g *gossiper) deliverMessage(packet *gossippacket.GossipPacket) {
 }
 */
 
-func getInfosFromCL() (string, *net.UDPAddr, *net.UDPAddr, []*net.UDPAddr, bool) {
+func getInfosFromCL() (string, *net.UDPAddr, *net.UDPAddr, []*net.UDPAddr, bool, int64) {
 	gossiperName := flag.String("name", "my_gossiper", "Gossiper's name")
 	clientPort := flag.String("UIPort", "8080", "Port to listen for the client")
 	gossiperAddr := flag.String("gossipAddr", "127.0.0.1:5000", "Gossiper's IP and port")
 	peersList := flag.String("peers", "", "List of peers' IP address and port")
 	simpleMode := flag.Bool("simple", false, "Simple mode execution")
+	antiEntropy := flag.Int64("antiEntropy", 0, "Length of anti-entropy interval")
 
 	flag.Parse()
 
@@ -281,7 +294,7 @@ func getInfosFromCL() (string, *net.UDPAddr, *net.UDPAddr, []*net.UDPAddr, bool)
 		peersAddr = append(peersAddr, peerAddr)
 	}
 
-	return *gossiperName, udpAddr, clientAddr, peersAddr, *simpleMode
+	return *gossiperName, udpAddr, clientAddr, peersAddr, *simpleMode, *antiEntropy
 }
 
 func (g *gossiper) isPeerKnown(testPeerAddr *net.UDPAddr) bool {
@@ -518,16 +531,6 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 		c := make(chan gossippacket.GossipPacket, 1)
 		g.channels[peer] = append(g.channels[peer], c)
 
-		//At the end of the function, deletes the channel
-		defer func() {
-			for i, channel := range g.channels[peer] {
-				if channel == c {
-					g.channels[peer] = append(g.channels[peer][:i], g.channels[peer][i+1:]...)
-					break
-				}
-			}
-		}()
-
 		//Sends the packet to the selected peer
 		printOutgoingRumorMessage(peer)
 		packet.RelayPeer = g.udpAddr.String()
@@ -541,6 +544,13 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 		fmt.Printf("Checking if mongering is done for message: %v\n", packet.Rumor.Text)
 		var done bool
 		done, coin = g.isMongeringDone(c, peer)
+		//At the end of the function, deletes the channel
+		for i, channel := range g.channels[peer] {
+			if channel == c {
+				g.channels[peer] = append(g.channels[peer][:i], g.channels[peer][i+1:]...)
+				break
+			}
+		}
 		if done {
 			return
 		}
@@ -607,7 +617,7 @@ func (g gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string)
 }
 
 func (g *gossiper) AntiEntropy() {
-	ticker := time.NewTicker(timerLength * time.Second)
+	ticker := time.NewTicker(g.antiEntropyLength * time.Second)
 
 	for {
 		select {
