@@ -2,16 +2,14 @@ Attempting client connection
 Listening for client on port 12352
 Listening for peer communication on port 5007
 Checking if peer is known
-127.0.0.1:5006,127.0.0.1:5008
+127.0.0.1:5008,127.0.0.1:5006
 RUMOR origin E from 127.0.0.1:5006 contents Weather_is_clear
 MONGERING with 127.0.0.1:5008
 Checking if mongering is done for message: Weather_is_clear
 Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5008
-ACCESSING CHANNEL 0xc0000b4360 ; WRITING &{<nil> <nil> 0xc0000a42c0 127.0.0.1:5008}
-ACCESSED CHANNEL 0xc0000b4360 ; READING {<nil> <nil> 0xc0000a42c0 127.0.0.1:5008}
-IN SYNC WITH  127.0.0.1:5008
+127.0.0.1:5006,127.0.0.1:5008
+STATUS from 127.0.0.1:5006 peer E nextID 2
+IN SYNC WITH 127.0.0.1:5006
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
 RUMOR origin B from 127.0.0.1:5006 contents Winter_is_coming
@@ -19,8 +17,15 @@ MONGERING with 127.0.0.1:5008
 Checking if mongering is done for message: Winter_is_coming
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5006 peer E nextID 1
-IN SYNC WITH  127.0.0.1:5006
+STATUS from 127.0.0.1:5008 peer E nextID 2 peer B nextID 2
+ACCESSING CHANNEL 0xc0000f6000 ; WRITING &{<nil> <nil> 0xc0000fc040 127.0.0.1:5008}
+ACCESSING CHANNEL 0xc0000f6180 ; WRITING &{<nil> <nil> 0xc0000fc040 127.0.0.1:5008}
+ACCESSED CHANNEL 0xc0000f6180 ; READING {<nil> <nil> 0xc0000fc040 127.0.0.1:5008}
+IN SYNC WITH 127.0.0.1:5008
+No peer to contact
+ACCESSED CHANNEL 0xc0000f6000 ; READING {<nil> <nil> 0xc0000fc040 127.0.0.1:5008}
+IN SYNC WITH 127.0.0.1:5008
+No peer to contact
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
 RUMOR origin E from 127.0.0.1:5006 contents No_clouds_really
@@ -28,54 +33,22 @@ MONGERING with 127.0.0.1:5008
 Checking if mongering is done for message: No_clouds_really
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5008 peer E nextID 1 peer B nextID 1
-ACCESSING CHANNEL 0xc0000880c0 ; WRITING &{<nil> <nil> 0xc0000a4600 127.0.0.1:5008}
-ACCESSING CHANNEL 0xc0000b4540 ; WRITING &{<nil> <nil> 0xc0000a4600 127.0.0.1:5008}
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-RUMOR origin E from 127.0.0.1:5006 contents No_clouds_really
-ACCESSED CHANNEL 0xc0000b4540 ; READING {<nil> <nil> 0xc0000a4600 127.0.0.1:5008}
-ACCESSED CHANNEL 0xc0000880c0 ; READING {<nil> <nil> 0xc0000a4600 127.0.0.1:5008}
-COMPARE RESULT: Sent subsequent packet
-Known message received. Ignoring.............
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-RUMOR origin E from 127.0.0.1:5006 contents No_clouds_really
-Known message received. Ignoring.............
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5008 peer E nextID 2 peer B nextID 1
-ACCESSING CHANNEL 0xc0000880c0 ; WRITING &{<nil> <nil> 0xc000116320 127.0.0.1:5008}
-ACCESSING CHANNEL 0xc0000b4540 ; WRITING &{<nil> <nil> 0xc000116320 127.0.0.1:5008}
-ACCESSED CHANNEL 0xc0000b4540 ; READING {<nil> <nil> 0xc000116320 127.0.0.1:5008}
-IN SYNC WITH  127.0.0.1:5008
-COMPARE RESULT: Sent subsequent packet
-ACCESSED CHANNEL 0xc0000880c0 ; READING {<nil> <nil> 0xc000116320 127.0.0.1:5008}
-IN SYNC WITH  127.0.0.1:5008
-Checking if peer is known
-127.0.0.1:5006,127.0.0.1:5008
-STATUS from 127.0.0.1:5008 peer B nextID 1 peer E nextID 2
+STATUS from 127.0.0.1:5008 peer E nextID 3 peer B nextID 2
+ACCESSING CHANNEL 0xc0000f6360 ; WRITING &{<nil> <nil> 0xc0000fc1c0 127.0.0.1:5008}
+ACCESSED CHANNEL 0xc0000f6360 ; READING {<nil> <nil> 0xc0000fc1c0 127.0.0.1:5008}
+IN SYNC WITH 127.0.0.1:5008
+No peer to contact
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
 RUMOR origin B from 127.0.0.1:5008 contents Let's_go_skiing
 MONGERING with 127.0.0.1:5006
 Checking if mongering is done for message: Let's_go_skiing
 Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-RUMOR origin B from 127.0.0.1:5008 contents Let's_go_skiing
-Known message received. Ignoring.............
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5006 peer E nextID 2 peer B nextID 1
-ACCESSING CHANNEL 0xc0000883c0 ; WRITING &{<nil> <nil> 0xc000116800 127.0.0.1:5006}
-ACCESSED CHANNEL 0xc0000883c0 ; READING {<nil> <nil> 0xc000116800 127.0.0.1:5006}
-COMPARE RESULT: Sent subsequent packet
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5006 peer E nextID 2 peer B nextID 2
-ACCESSING CHANNEL 0xc0000883c0 ; WRITING &{<nil> <nil> 0xc000116940 127.0.0.1:5006}
-ACCESSED CHANNEL 0xc0000883c0 ; READING {<nil> <nil> 0xc000116940 127.0.0.1:5006}
-IN SYNC WITH  127.0.0.1:5006
+127.0.0.1:5006,127.0.0.1:5008
+STATUS from 127.0.0.1:5006 peer E nextID 3 peer B nextID 3
+ACCESSING CHANNEL 0xc0000d6120 ; WRITING &{<nil> <nil> 0xc0000da200 127.0.0.1:5006}
+ACCESSED CHANNEL 0xc0000d6120 ; READING {<nil> <nil> 0xc0000da200 127.0.0.1:5006}
+IN SYNC WITH 127.0.0.1:5006
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
 RUMOR origin G from 127.0.0.1:5006 contents Is_anybody_here?
@@ -83,41 +56,47 @@ MONGERING with 127.0.0.1:5008
 Checking if mongering is done for message: Is_anybody_here?
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5008 peer E nextID 2 peer B nextID 2
-ACCESSING CHANNEL 0xc0000885a0 ; WRITING &{<nil> <nil> 0xc000116c20 127.0.0.1:5008}
-ACCESSED CHANNEL 0xc0000885a0 ; READING {<nil> <nil> 0xc000116c20 127.0.0.1:5008}
-IN SYNC WITH  127.0.0.1:5008
+STATUS from 127.0.0.1:5008 peer E nextID 3 peer B nextID 3 peer G nextID 2
+ACCESSING CHANNEL 0xc0000f6480 ; WRITING &{<nil> <nil> 0xc0000fc4c0 127.0.0.1:5008}
+ACCESSED CHANNEL 0xc0000f6480 ; READING {<nil> <nil> 0xc0000fc4c0 127.0.0.1:5008}
+IN SYNC WITH 127.0.0.1:5008
 No peer to contact
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5006 peer E nextID 2 peer B nextID 2
+STATUS from 127.0.0.1:5006 peer E nextID 3 peer B nextID 3 peer G nextID 2
+Firing Anti-Entropy Message towards 127.0.0.1:5008!
+STATUS from 127.0.0.1:5007 peer E nextID 3 peer B nextID 3 peer G nextID 2
+Checking if peer is known
+127.0.0.1:5008,127.0.0.1:5006
+STATUS from 127.0.0.1:5008 peer E nextID 3 peer B nextID 3 peer G nextID 2
+Checking if peer is known
+127.0.0.1:5006,127.0.0.1:5008
+STATUS from 127.0.0.1:5006 peer E nextID 3 peer B nextID 3 peer G nextID 2
+Firing Anti-Entropy Message towards 127.0.0.1:5008!
+STATUS from 127.0.0.1:5007 peer E nextID 3 peer B nextID 3 peer G nextID 2
+Checking if peer is known
+127.0.0.1:5008,127.0.0.1:5006
+STATUS from 127.0.0.1:5008 peer E nextID 3 peer B nextID 3 peer G nextID 2
+Checking if peer is known
+127.0.0.1:5008,127.0.0.1:5006
+STATUS from 127.0.0.1:5006 peer E nextID 3 peer B nextID 3 peer G nextID 2
+Firing Anti-Entropy Message towards 127.0.0.1:5008!
+STATUS from 127.0.0.1:5007 peer B nextID 3 peer G nextID 2 peer E nextID 3
+Checking if peer is known
+127.0.0.1:5008,127.0.0.1:5006
+STATUS from 127.0.0.1:5008 peer G nextID 2 peer E nextID 3 peer B nextID 3
+Checking if peer is known
+127.0.0.1:5008,127.0.0.1:5006
+STATUS from 127.0.0.1:5006 peer E nextID 3 peer B nextID 3 peer G nextID 2
 Firing Anti-Entropy Message towards 127.0.0.1:5006!
-STATUS from 127.0.0.1:5007 peer E nextID 2 peer B nextID 2 peer G nextID 1
+STATUS from 127.0.0.1:5007 peer E nextID 3 peer B nextID 3 peer G nextID 2
 Checking if peer is known
 127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5006 peer E nextID 2 peer B nextID 2
+STATUS from 127.0.0.1:5008 peer E nextID 3 peer B nextID 3 peer G nextID 2
+Checking if peer is known
+127.0.0.1:5008,127.0.0.1:5006
+STATUS from 127.0.0.1:5006 peer E nextID 3 peer B nextID 3 peer G nextID 2
 Firing Anti-Entropy Message towards 127.0.0.1:5008!
-STATUS from 127.0.0.1:5007 peer E nextID 2 peer B nextID 2 peer G nextID 1
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5006 peer E nextID 2 peer B nextID 2
+STATUS from 127.0.0.1:5007 peer B nextID 3 peer G nextID 2 peer E nextID 3
 Firing Anti-Entropy Message towards 127.0.0.1:5006!
-STATUS from 127.0.0.1:5007 peer E nextID 2 peer B nextID 2 peer G nextID 1
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5008 peer E nextID 2 peer B nextID 2 peer G nextID 1
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5006 peer B nextID 2 peer E nextID 2
-Firing Anti-Entropy Message towards 127.0.0.1:5008!
-STATUS from 127.0.0.1:5007 peer E nextID 2 peer B nextID 2 peer G nextID 1
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5008 peer B nextID 2 peer G nextID 1 peer E nextID 2
-Firing Anti-Entropy Message towards 127.0.0.1:5008!
-STATUS from 127.0.0.1:5007 peer E nextID 2 peer B nextID 2 peer G nextID 1
-Checking if peer is known
-127.0.0.1:5008,127.0.0.1:5006
-STATUS from 127.0.0.1:5006 peer E nextID 2 peer B nextID 2
-Firing Anti-Entropy Message towards 127.0.0.1:5008!
-STATUS from 127.0.0.1:5007 peer E nextID 2 peer B nextID 2 peer G nextID 1
+STATUS from 127.0.0.1:5007 peer E nextID 3 peer B nextID 3 peer G nextID 2

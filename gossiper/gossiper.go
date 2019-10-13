@@ -240,7 +240,7 @@ func printCoinFlipSuccess(destination string) {
 
 //printSyncWith prints a message when it's up to date with a peer it received a status message from
 func printSyncWith(sender string) {
-	fmt.Println("IN SYNC WITH ", sender)
+	fmt.Println("IN SYNC WITH " + sender)
 }
 
 /*
@@ -610,6 +610,7 @@ func (g gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string)
 			return true, false
 		}
 	case <-ticker.C:
+		fmt.Println("TIMEOUT! No message received!")
 		return false, false
 	}
 
