@@ -34,7 +34,8 @@ func init() {
 	timerLength = 10
 }
 
-type gossiper struct {
+//Gossiper is a struct that contains all the information needed by the gossiper
+type Gossiper struct {
 	name              string
 	udpAddr           *net.UDPAddr
 	udpConn           *net.UDPConn
@@ -46,29 +47,38 @@ type gossiper struct {
 	rumorMsgs         map[string][]message.RumorMessage
 	channels          map[string][]chan gossippacket.GossipPacket
 	antiEntropyLength time.Duration
+	writtenMsgStatus  map[string][]uint32
+	newNodes          []string
 }
 
-//New creates a new gossiper
-func New() *gossiper {
-	g := gossiper{}
+//New creates a new Gossiper
+func New() *Gossiper {
+	g := Gossiper{}
 	g.peers = make(map[string](*net.UDPConn))
 	g.myStatus = make(map[string]uint32)
 	g.rumorMsgs = make(map[string][]message.RumorMessage)
 	g.channels = make(map[string][]chan gossippacket.GossipPacket)
+	g.writtenMsgStatus = make(map[string][]uint32)
 	return &g
 }
 
 //Simple returns the simple bool variable, stating whether or not the program runs in simple mode
-func (g gossiper) Simple() bool {
+func (g Gossiper) Simple() bool {
 	return g.simpleMode
 }
 
-func (g gossiper) IsAntiEntropyActive() bool {
+//IsAntiEntropyActive checks if AntiEntroy is activated from command line
+func (g Gossiper) IsAntiEntropyActive() bool {
 	return g.antiEntropyLength > 0
 }
 
+//Name returns the name (ID) of the peer
+func (g Gossiper) Name() string {
+	return g.name
+}
+
 //SetInfos read infos from command line and stores them in the structure
-func (g *gossiper) SetInfos() {
+func (g *Gossiper) SetInfos() {
 	var peersAddr []*net.UDPAddr
 	var antiEntropy int64
 
@@ -79,26 +89,24 @@ func (g *gossiper) SetInfos() {
 	}
 
 	for _, peerAddr := range peersAddr {
-		peerConn, err := net.DialUDP("udp4", nil, peerAddr)
-		if err != nil {
-			fmt.Println("Error: could not connect to given peer")
-			os.Exit(-1)
-		}
-		g.peers[peerAddr.String()] = peerConn
+		g.AddPeer(peerAddr)
 	}
 }
 
-//AddPeer adds a peer to the gossiper
-func (g *gossiper) AddPeer(peerAddr *(net.UDPAddr)) {
+//AddPeer adds a peer to the Gossiper
+func (g *Gossiper) AddPeer(peerAddr *(net.UDPAddr)) {
 	peerConn, err := net.DialUDP("udp4", nil, peerAddr)
 	if err != nil {
-		fmt.Println("Error: could not connect to given peer")
+		fmt.Printf("Error: could not connect to given peer: %v", err)
 		os.Exit(-1)
 	}
 	g.peers[peerAddr.String()] = peerConn
+
+	g.newNodes = append(g.newNodes, peerAddr.String())
 }
 
-func (g *gossiper) ConnectToClient() {
+//ConnectToClient connects to the client
+func (g *Gossiper) ConnectToClient() {
 	fmt.Println("Attempting client connection")
 
 	clientConn, err := net.ListenUDP("udp4", g.clientAddr)
@@ -111,7 +119,8 @@ func (g *gossiper) ConnectToClient() {
 	fmt.Printf("Listening for client on port %d\n", g.clientAddr.Port)
 }
 
-func (g *gossiper) ListenForPeers() {
+//ListenForPeers opens connections to peers
+func (g *Gossiper) ListenForPeers() {
 	udpConn, err := net.ListenUDP("udp4", g.udpAddr)
 	if err != nil {
 		fmt.Printf("Error: can't listen for peers on socket; %v", err)
@@ -122,8 +131,8 @@ func (g *gossiper) ListenForPeers() {
 	fmt.Printf("Listening for peer communication on port %d\n", g.udpAddr.Port)
 }
 
-//SimpleHandleClientMessages has the gossiper listen for client messages and broadcast them (Simple mode)
-func (g *gossiper) SimpleHandleClientMessages() {
+//SimpleHandleClientMessages has the Gossiper listen for client messages and broadcast them (Simple mode)
+func (g *Gossiper) SimpleHandleClientMessages() {
 	g.ConnectToClient()
 
 	packetBytes := make([]byte, buffsize)
@@ -153,8 +162,8 @@ func printClientMessage(msg message.Message) {
 	fmt.Println("CLIENT MESSAGE " + msg.Text)
 }
 
-//SimpleHandlePeersMessages has the gossiper listen for peer messages and broadcast them (Simple mode)
-func (g *gossiper) SimpleHandlePeersMessages() {
+//SimpleHandlePeersMessages has the Gossiper listen for peer messages and broadcast them (Simple mode)
+func (g *Gossiper) SimpleHandlePeersMessages() {
 	g.ListenForPeers()
 
 	packetBytes := make([]byte, buffsize)
@@ -187,7 +196,7 @@ func (g *gossiper) SimpleHandlePeersMessages() {
 }
 
 //broadcastSimpleMessage sends a message to all connected peers, minus the sender (if the message doesn't come from the client)
-func (g *gossiper) broadcastSimpleMessage(packet *gossippacket.GossipPacket, origin *net.UDPAddr) {
+func (g *Gossiper) broadcastSimpleMessage(packet *gossippacket.GossipPacket, origin *net.UDPAddr) {
 	for addr, conn := range g.peers {
 		if origin != nil {
 			if addr == origin.String() {
@@ -216,7 +225,7 @@ func printSimpleMessage(msg message.SimpleMessage) {
 
 //printIncomingRumorMessage prints rumor messages after receiving them from another peer
 func printIncomingRumorMessage(msg message.RumorMessage, relay *net.UDPAddr) {
-	fmt.Printf("RUMOR origin %s from %s contents %s\n", msg.Origin, relay.String(), msg.Text)
+	fmt.Printf("RUMOR origin %s from %s ID %v contents %s\n", msg.Origin, relay.String(), msg.ID, msg.Text)
 }
 
 //printOutgoingRumorMessage prints rumor messages before mongering
@@ -245,7 +254,7 @@ func printSyncWith(sender string) {
 
 /*
 //deliverMessage sends a message to the client
-func (g *gossiper) deliverMessage(packet *gossippacket.GossipPacket) {
+func (g *Gossiper) deliverMessage(packet *gossippacket.GossipPacket) {
 	packetBytes, err := protobuf.Encode(&packet.Simple)
 	if err != nil {
 		fmt.Println("Error in encoding the message")
@@ -297,7 +306,7 @@ func getInfosFromCL() (string, *net.UDPAddr, *net.UDPAddr, []*net.UDPAddr, bool,
 	return *gossiperName, udpAddr, clientAddr, peersAddr, *simpleMode, *antiEntropy
 }
 
-func (g *gossiper) isPeerKnown(testPeerAddr *net.UDPAddr) bool {
+func (g *Gossiper) isPeerKnown(testPeerAddr *net.UDPAddr) bool {
 	for addr := range g.peers {
 		if testPeerAddr.String() == addr {
 			return true
@@ -307,7 +316,8 @@ func (g *gossiper) isPeerKnown(testPeerAddr *net.UDPAddr) bool {
 	return false
 }
 
-func (g gossiper) PrintPeers() {
+//PrintPeers print the gossiper's peers
+func (g Gossiper) PrintPeers() {
 	var peersSlice []string
 	for peer := range g.peers {
 		peersSlice = append(peersSlice, peer)
@@ -315,11 +325,17 @@ func (g gossiper) PrintPeers() {
 	fmt.Println(strings.Join(peersSlice, ","))
 }
 
-func (g gossiper) isMessageKnown(rumorMsg message.RumorMessage) bool {
-	return g.myStatus[rumorMsg.Origin] > rumorMsg.ID
+func (g Gossiper) isMessageKnown(rumorMsg message.RumorMessage) bool {
+	for _, msg := range g.rumorMsgs[rumorMsg.Origin] {
+		if msg == rumorMsg {
+			return true
+		}
+	}
+
+	return false
 }
 
-func (g gossiper) selectRandomPeer() string { //Doesn't check that the selected peer is not the sender!!!
+func (g Gossiper) selectRandomPeer() string { //Doesn't check that the selected peer is not the sender!!!
 	i := rand.Intn(len(g.peers))
 	var addr string
 	for addr = range g.peers {
@@ -350,12 +366,12 @@ func keepMongering() bool {
 	return (rand.Int() % 2) == 1
 }
 
-func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status {
+func (g *Gossiper) compareStatus(msg message.StatusPacket, sender string) status {
 	needMessages := false
 
 	for _, request := range msg.Want {
 		if g.myStatus[request.Identifier] > request.NextID {
-			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[request.Identifier][request.NextID-1], Status: nil, RelayPeer: g.udpAddr.String()}
+			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[request.Identifier][request.NextID-1], Status: nil}
 			g.sendPacket(gp, sender)
 			fmt.Println("COMPARE RESULT: Sent subsequent packet")
 			return have
@@ -374,7 +390,7 @@ func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status
 		}
 
 		if !present {
-			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[origin][0], Status: nil, RelayPeer: g.udpAddr.String()}
+			gp := &gossippacket.GossipPacket{Simple: nil, Rumor: &g.rumorMsgs[origin][0], Status: nil}
 			g.sendPacket(gp, sender)
 			fmt.Println("COMPARE RESULT: Sent unknown packet")
 			return have
@@ -390,7 +406,7 @@ func (g *gossiper) compareStatus(msg message.StatusPacket, sender string) status
 }
 
 //HandleClientMessages receives messages from clients, encapsulate them as Rumor Messages (and gossip packets) and proceeds to rumor monger
-func (g *gossiper) HandleClientMessages() {
+func (g *Gossiper) HandleClientMessages() {
 	g.ConnectToClient()
 
 	packetBytes := make([]byte, buffsize)
@@ -413,21 +429,21 @@ func (g *gossiper) HandleClientMessages() {
 			messageID++
 			g.myStatus[g.name] = messageID
 
-			packet := &gossippacket.GossipPacket{Rumor: &rumorMsg, RelayPeer: g.udpAddr.String()}
+			packet := &gossippacket.GossipPacket{Rumor: &rumorMsg}
 			go g.rumorMonger(*packet, nil)
 		}
 	}
 }
 
 //HandlePeersMessages reads messages coming from peers; if they are acks, it tries to send them to the appropriate channel. If they are not, it starts a rumor mongering routine
-func (g *gossiper) HandlePeersMessages() {
+func (g *Gossiper) HandlePeersMessages() {
 	g.ListenForPeers()
 
 	packetBytes := make([]byte, buffsize)
 	packet := &gossippacket.GossipPacket{}
 
 	for {
-		nRead, _, err := g.udpConn.ReadFromUDP(packetBytes)
+		nRead, addrComing, err := g.udpConn.ReadFromUDP(packetBytes)
 		if err != nil {
 			fmt.Println("Error: read from buffer failed.")
 			os.Exit(-1)
@@ -435,7 +451,7 @@ func (g *gossiper) HandlePeersMessages() {
 
 		if nRead > 0 {
 			protobuf.Decode(packetBytes, packet)
-			addr, err := net.ResolveUDPAddr("udp4", packet.RelayPeer)
+			addr, err := net.ResolveUDPAddr("udp4", addrComing.String())
 			if err != nil {
 				fmt.Println("Error: couldn't resolve sender's address")
 				os.Exit(-1)
@@ -468,7 +484,7 @@ func (g *gossiper) HandlePeersMessages() {
 					if packet.Rumor.ID == g.myStatus[packet.Rumor.Origin] {
 						var nextID uint32
 						for nextID = g.myStatus[packet.Rumor.Origin]; nextID < uint32(len(g.rumorMsgs[packet.Rumor.Origin])); nextID++ {
-							if g.rumorMsgs[packet.Rumor.Origin][nextID].ID != nextID {
+							if g.rumorMsgs[packet.Rumor.Origin][nextID].ID != nextID+1 {
 								break
 							}
 						}
@@ -482,7 +498,7 @@ func (g *gossiper) HandlePeersMessages() {
 				g.sendPacket(g.makeStatusPacket(), addr.String())
 			case message.Status:
 				printStatusPacket(*packet.Status, addr)
-				if _, ok := g.channels[addr.String()]; ok { //Need control on possible empty array?
+				if len(g.channels[addr.String()]) > 0 {
 					for _, ch := range g.channels[addr.String()] {
 						fmt.Printf("ACCESSING CHANNEL %v ; WRITING %v\n", ch, packet)
 						ch <- *packet
@@ -495,7 +511,7 @@ func (g *gossiper) HandlePeersMessages() {
 	}
 }
 
-func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAddr) {
+func (g *Gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAddr) {
 	//If message comes from peer, doesn't send it back to peer
 	var contacted []string
 	if addr != nil {
@@ -533,7 +549,6 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 
 		//Sends the packet to the selected peer
 		printOutgoingRumorMessage(peer)
-		packet.RelayPeer = g.udpAddr.String()
 		g.sendPacket(&packet, peer)
 
 		//Checks if rumor mongering process is done or if it has to select another peer
@@ -560,25 +575,30 @@ func (g *gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 
 }
 
-func (g gossiper) makeStatusPacket() *gossippacket.GossipPacket {
+func (g Gossiper) makeStatusPacket() *gossippacket.GossipPacket {
 	var want []message.PeerStatus
 	for id, val := range g.myStatus {
 		mystat := message.PeerStatus{Identifier: id, NextID: val}
 		want = append(want, mystat)
 	}
 	peerStatus := &message.StatusPacket{Want: want}
-	gp := &gossippacket.GossipPacket{Simple: nil, Rumor: nil, Status: peerStatus, RelayPeer: g.udpAddr.String()}
+	gp := &gossippacket.GossipPacket{Simple: nil, Rumor: nil, Status: peerStatus}
 	return gp
 }
 
-func (g gossiper) sendPacket(packet *gossippacket.GossipPacket, addr string) {
+func (g Gossiper) sendPacket(packet *gossippacket.GossipPacket, addr string) {
 	packetBytes, err := protobuf.Encode(packet)
 	if err != nil {
 		fmt.Println("Error in encoding the message")
 		os.Exit(-1)
 	}
 
-	_, err = g.peers[addr].Write(packetBytes[0:])
+	//	_, err = g.peers[addr].Write(packetBytes[0:])
+	udpaddr, err := net.ResolveUDPAddr("udp4", addr)
+	if err != nil {
+		fmt.Println("Error in converting udp addr")
+	}
+	g.udpConn.WriteTo(packetBytes[0:], udpaddr)
 	if err != nil {
 		fmt.Printf("Error in sending the message. Error code: %v\n", err)
 		os.Exit(-1)
@@ -586,7 +606,7 @@ func (g gossiper) sendPacket(packet *gossippacket.GossipPacket, addr string) {
 }
 
 //isMongeringDone gets the ack, handles it and then tells the caller if the message must be mongered again. In case it does, the second boolean tells if it happened because of a coin flip
-func (g gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string) (bool, bool) {
+func (g Gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string) (bool, bool) {
 	ticker := time.NewTicker(timerLength * time.Second)
 
 	select {
@@ -617,7 +637,8 @@ func (g gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string)
 	return false, false
 }
 
-func (g *gossiper) AntiEntropy() {
+//AntiEntropy implements an AntiEntropy protocol
+func (g *Gossiper) AntiEntropy() {
 	ticker := time.NewTicker(g.antiEntropyLength * time.Second)
 
 	for {
@@ -625,8 +646,42 @@ func (g *gossiper) AntiEntropy() {
 		case <-ticker.C:
 			peer := g.selectRandomPeer()
 			fmt.Println("Firing Anti-Entropy Message towards " + peer + "!")
-			printStatusPacket(*g.makeStatusPacket().Status, g.udpAddr)
 			g.sendPacket(g.makeStatusPacket(), peer)
 		}
 	}
+}
+
+//Note: more efficient way to do this: when getting a new node/message, add it to a list. When asking for the new ones, empty the list...
+
+//GetLatestRumorMessagesList returns a list of messages that were not returned in a previous call of the same function
+func (g *Gossiper) GetLatestRumorMessagesList() []message.RumorMessage {
+	var msgs []message.RumorMessage
+
+	for id, msgList := range g.rumorMsgs {
+		for _, msg := range msgList {
+
+			sent := false
+			for _, writtenMsg := range g.writtenMsgStatus[id] {
+				if msg.ID == writtenMsg {
+					sent = true
+					break
+				}
+			}
+			if !sent {
+				msgs = append(msgs, msg)
+				g.writtenMsgStatus[id] = append(g.writtenMsgStatus[id], msg.ID)
+			}
+		}
+	}
+
+	return msgs
+}
+
+//GetLatestNodesList returns a list of nodes that were not returned in a previous call of the same function
+func (g *Gossiper) GetLatestNodesList() []string {
+	defer func() {
+		g.newNodes = nil
+	}()
+
+	return g.newNodes
 }

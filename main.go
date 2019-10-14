@@ -1,11 +1,13 @@
 package main
 
 import (
+	"github.com/AlessandroBianchi/Peerster/frontend"
 	"github.com/AlessandroBianchi/Peerster/gossiper"
 )
 
 func main() {
 	g := gossiper.New()
+	s := frontend.New(g)
 
 	g.SetInfos()
 
@@ -17,6 +19,7 @@ func main() {
 		if g.IsAntiEntropyActive() {
 			go g.AntiEntropy()
 		}
+		go s.Start()
 		g.HandlePeersMessages()
 	}
 }

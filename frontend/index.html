@@ -1,0 +1,162 @@
+<html>
+	<head>
+		<title> Peerster </title>
+		
+		<script
+			src="https://code.jquery.com/jquery-3.4.1.min.js"
+			integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+			crossorigin="anonymous">
+		</script>
+		
+	</head>
+	
+	<style>
+	div {
+		width: 800px;
+		height: 100px;
+		overflow: auto;
+		border: 10px solid gray;
+		padding: 15px;
+		margin: 15px;
+	}
+	</style>
+	
+	<body>
+		<h1> Peerster </h1>
+		
+		<h2> Chat box </h2>
+		<div id="chatbox"></div>
+		
+		<h2> Node box </h2>
+		<div class="boxed" id="nodebox"></div>
+
+		<h2> Id box </h2>
+		<div class="boxed" id="idbox"></div>
+		
+		<h3> Send a message </h3>
+		<input type="text" id="messagebox" size="50">
+		<button id="sendmessage">Send message</button>
+		
+		<h3> Add a peer </h3>
+		<p> IP: <input type="text" id="ip" maxlength="15" size = "15"></p>
+		<p> Port: <input type="text" id="port" maxlength="5" size="5"></p>
+		<button id="addpeer">Add peer</button>
+		
+		<script>
+			$(function (){
+		
+				var $chatbox = $('#chatbox');
+		
+				$.ajax({
+					type: 'GET',
+					url: '/message',
+					success: function (messages) {
+						var $messages = JSON.parse(messages)
+						$.each($messages, function (key, message)	{
+							$chatbox.append(message + " " + key + "<br>")
+						});
+					},
+					error: function()	{
+						alert("Error loading messages!");
+					},
+					complete: function() {
+						setTimeout(getNodes, 3000)
+					}
+				});
+				
+			});
+		</script>
+
+		<script>
+
+			$(function getNodes(){
+
+				var $nodebox = $('#nodebox');
+				$.ajax({
+					type: 'GET',
+					url: '/node',
+					success: function (nodes) {	
+						//var $nodes = JSON.parse(nodes)
+						//alert($nodes);
+						$.each(nodes, function (key, node)	{
+							$nodebox.append(node + "<br>")
+						});
+					},
+					error: function()	{
+						alert("Error loading nodes!");
+					},
+					complete: function() {
+						setTimeout(getNodes, 3000)
+					}
+				});
+			});
+		</script>
+
+		<script>
+			$(function (){
+
+				var $idbox = $('#idbox');
+
+				$.ajax({
+					type: 'GET',
+					url: '/id',
+					success: function (ids) {
+						$idbox.append(ids);
+					},
+					error: function()	{
+						alert("Error loading ids!");
+					}
+					
+				});
+
+			});
+		</script>
+
+		<script>
+			var $ip = $('#ip')
+			var $port = $('#port')
+
+			$('#addpeer').on('click', function()	{
+				var peer = {
+					ip: $ip.val(),
+					port: $port.val()
+				};
+
+				$.ajax({
+					type: 'POST',
+					url: '/node',
+					data: peer,
+					success: function (newPeer)	{
+						alert("Peer added!")
+					},
+					error: function()	{
+						alert("Error in saving the peer");
+					}
+				});
+			});
+		</script>
+
+		<script>
+			var $messagebox = $('#messagebox')
+
+			$('#sendmessage').on('click', function()	{
+				var msg = {
+					content: $messagebox.val()
+				};
+
+				$.ajax({
+					type: 'POST',
+					url: '/message',
+					data: msg,
+					success: function (newMsg)	{
+						alert("Message sent correctly")
+					},
+					error: function()	{
+						alert("Error in saving the peer");
+					}
+				});
+			});
+		</script>
+		
+	</body>
+</html>

@@ -6,8 +6,7 @@ import (
 
 //GossipPacket is a packet to send through gossiping. Contains a SimpleMessage.
 type GossipPacket struct {
-	Simple    *message.SimpleMessage
-	Rumor     *message.RumorMessage
-	Status    *message.StatusPacket
-	RelayPeer string
+	Simple *message.SimpleMessage
+	Rumor  *message.RumorMessage
+	Status *message.StatusPacket
 }
