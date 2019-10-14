@@ -47,7 +47,7 @@ type Gossiper struct {
 	rumorMsgs         map[string][]message.RumorMessage
 	channels          map[string][]chan gossippacket.GossipPacket
 	antiEntropyLength time.Duration
-	writtenMsgStatus  map[string][]uint32
+	newMsgs           []message.RumorMessage
 	newNodes          []string
 }
 
@@ -58,7 +58,6 @@ func New() *Gossiper {
 	g.myStatus = make(map[string]uint32)
 	g.rumorMsgs = make(map[string][]message.RumorMessage)
 	g.channels = make(map[string][]chan gossippacket.GossipPacket)
-	g.writtenMsgStatus = make(map[string][]uint32)
 	return &g
 }
 
@@ -75,6 +74,11 @@ func (g Gossiper) IsAntiEntropyActive() bool {
 //Name returns the name (ID) of the peer
 func (g Gossiper) Name() string {
 	return g.name
+}
+
+//ClientPort returns the client's port
+func (g Gossiper) ClientPort() string {
+	return fmt.Sprintf("%v", g.clientAddr.Port)
 }
 
 //SetInfos read infos from command line and stores them in the structure
@@ -252,31 +256,13 @@ func printSyncWith(sender string) {
 	fmt.Println("IN SYNC WITH " + sender)
 }
 
-/*
-//deliverMessage sends a message to the client
-func (g *Gossiper) deliverMessage(packet *gossippacket.GossipPacket) {
-	packetBytes, err := protobuf.Encode(&packet.Simple)
-	if err != nil {
-		fmt.Println("Error in encoding the message")
-		os.Exit(-1)
-	}
-
-	n, err := g.clientConn.WriteToUDP(packetBytes, g.clientAddr)
-	if err != nil {
-		fmt.Printf("Error in sending the message. Error code: %v\n", err)
-		os.Exit(-1)
-	}
-	fmt.Printf("%d bytes correctly sent!\n", n)
-}
-*/
-
 func getInfosFromCL() (string, *net.UDPAddr, *net.UDPAddr, []*net.UDPAddr, bool, int64) {
 	gossiperName := flag.String("name", "my_gossiper", "Gossiper's name")
 	clientPort := flag.String("UIPort", "8080", "Port to listen for the client")
 	gossiperAddr := flag.String("gossipAddr", "127.0.0.1:5000", "Gossiper's IP and port")
 	peersList := flag.String("peers", "", "List of peers' IP address and port")
 	simpleMode := flag.Bool("simple", false, "Simple mode execution")
-	antiEntropy := flag.Int64("antiEntropy", 0, "Length of anti-entropy interval")
+	antiEntropy := flag.Int64("antiEntropy", 10, "Length of anti-entropy interval")
 
 	flag.Parse()
 
@@ -426,6 +412,7 @@ func (g *Gossiper) HandleClientMessages() {
 
 			rumorMsg := message.RumorMessage{Origin: g.name, ID: messageID, Text: msg.Text}
 			g.rumorMsgs[g.name] = append(g.rumorMsgs[g.name], rumorMsg)
+			g.newMsgs = append(g.newMsgs, rumorMsg)
 			messageID++
 			g.myStatus[g.name] = messageID
 
@@ -475,6 +462,7 @@ func (g *Gossiper) HandlePeersMessages() {
 					sort.Slice(g.rumorMsgs[packet.Rumor.Origin], func(i, j int) bool {
 						return g.rumorMsgs[packet.Rumor.Origin][i].ID < g.rumorMsgs[packet.Rumor.Origin][j].ID
 					})
+					g.newMsgs = append(g.newMsgs, *packet.Rumor)
 
 					//If this is the first message I get, I update the one I'm looking for before doing the check
 					if g.myStatus[packet.Rumor.Origin] == 0 {
@@ -552,10 +540,6 @@ func (g *Gossiper) rumorMonger(packet gossippacket.GossipPacket, addr *net.UDPAd
 		g.sendPacket(&packet, peer)
 
 		//Checks if rumor mongering process is done or if it has to select another peer
-		if packet.Rumor == nil {
-			fmt.Println("ERROR: NON RUMOR PACKET IS BEING RUMOR MONGERED?!")
-			os.Exit(-1)
-		}
 		fmt.Printf("Checking if mongering is done for message: %v\n", packet.Rumor.Text)
 		var done bool
 		done, coin = g.isMongeringDone(c, peer)
@@ -612,17 +596,11 @@ func (g Gossiper) isMongeringDone(c chan gossippacket.GossipPacket, peer string)
 	select {
 	case gp := <-c:
 		fmt.Printf("ACCESSED CHANNEL %v ; READING %v\n", c, gp)
-		if gp.Status == nil {
-			fmt.Println("ERROR: NOT STATUS PACKET SENT IN STATUS CHANNEL?!")
-			fmt.Println(gp.Rumor.Text)
-			os.Exit(-1)
-		}
 		s := g.compareStatus(*gp.Status, peer)
 		switch s {
 		case have:
 			return g.isMongeringDone(c, peer)
 		case want:
-			return true, false
 		case equal:
 			if keepMongering() {
 				return false, true
@@ -655,26 +633,11 @@ func (g *Gossiper) AntiEntropy() {
 
 //GetLatestRumorMessagesList returns a list of messages that were not returned in a previous call of the same function
 func (g *Gossiper) GetLatestRumorMessagesList() []message.RumorMessage {
-	var msgs []message.RumorMessage
+	defer func() {
+		g.newMsgs = nil
+	}()
 
-	for id, msgList := range g.rumorMsgs {
-		for _, msg := range msgList {
-
-			sent := false
-			for _, writtenMsg := range g.writtenMsgStatus[id] {
-				if msg.ID == writtenMsg {
-					sent = true
-					break
-				}
-			}
-			if !sent {
-				msgs = append(msgs, msg)
-				g.writtenMsgStatus[id] = append(g.writtenMsgStatus[id], msg.ID)
-			}
-		}
-	}
-
-	return msgs
+	return g.newMsgs
 }
 
 //GetLatestNodesList returns a list of nodes that were not returned in a previous call of the same function

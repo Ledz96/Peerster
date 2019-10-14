@@ -24,7 +24,7 @@ type Server struct {
 
 //New builds a new server
 func New(g *gossiper.Gossiper) *Server {
-	s := Server{port: "8080", gossiper: g}
+	s := Server{port: g.ClientPort(), gossiper: g}
 	return &s
 }
 
@@ -82,7 +82,7 @@ func (s Server) Start() {
 	r.HandleFunc("/node", s.getLatestNodesInfosHandler)
 	r.HandleFunc("/id", s.getPeerIDHandler)
 	r.Handle("/", http.FileServer(http.Dir("./frontend")))
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":"+s.port, r))
 	//	for {
 	//		err := http.ListenAndServe(":"+s.port, nil)
 	//		// error handling, etc..

@@ -43,24 +43,23 @@
 		<button id="addpeer">Add peer</button>
 		
 		<script>
-			$(function (){
+			$(function getMessages(){
 		
 				var $chatbox = $('#chatbox');
-		
 				$.ajax({
 					type: 'GET',
 					url: '/message',
 					success: function (messages) {
-						var $messages = JSON.parse(messages)
-						$.each($messages, function (key, message)	{
-							$chatbox.append(message + " " + key + "<br>")
+						//var $messages = JSON.parse(messages);
+						$.each(messages, function (key, message)	{
+							$chatbox.append("Message from: " + message.Origin + "; ID: " + message.ID + "; Content: " + message.Text + "<br>")
 						});
 					},
 					error: function()	{
 						alert("Error loading messages!");
 					},
 					complete: function() {
-						setTimeout(getNodes, 3000)
+						setTimeout(getMessages, 3000)
 					}
 				});
 				

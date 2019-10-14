@@ -7,9 +7,9 @@ import (
 
 func main() {
 	g := gossiper.New()
-	s := frontend.New(g)
 
 	g.SetInfos()
+	s := frontend.New(g)
 
 	if g.Simple() {
 		go g.SimpleHandleClientMessages()
