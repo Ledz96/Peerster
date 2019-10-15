@@ -4,18 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 
+	"github.com/dedis/protobuf"
 	"github.com/gorilla/mux"
 
 	"github.com/AlessandroBianchi/Peerster/gossiper"
+	"github.com/AlessandroBianchi/Peerster/message"
 )
 
 //Server is a struct that represents a frontend web server
 type Server struct {
 	port     string
 	gossiper *gossiper.Gossiper
+	conn     *net.UDPConn
 }
 
 /*func YourHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +29,37 @@ type Server struct {
 //New builds a new server
 func New(g *gossiper.Gossiper) *Server {
 	s := Server{port: g.ClientPort(), gossiper: g}
+
+	udpAddr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:"+s.port)
+	if err != nil {
+		fmt.Println("Error: could not resolve UDP address")
+		os.Exit(-1)
+	}
+	conn, err := net.DialUDP("udp4", nil, udpAddr)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(-1)
+	}
+	s.conn = conn
+
 	return &s
+}
+
+func (s Server) sendMessage(msg string) {
+	msgStruct := message.Message{Text: msg}
+
+	packetBytes, err := protobuf.Encode(&msgStruct)
+	if err != nil {
+		fmt.Printf("Client: error in encoding the message %v", err)
+		os.Exit(-1)
+	}
+
+	n, err := s.conn.Write(packetBytes[0:])
+	if err != nil {
+		fmt.Printf("Error in sending the message. Error code: %v\n", err)
+		os.Exit(-1)
+	}
+	fmt.Printf("%d bytes correctly sent!\n", n)
 }
 
 func (s Server) getLatestRumorMessagesHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,8 +74,16 @@ func (s Server) getLatestRumorMessagesHandler(w http.ResponseWriter, r *http.Req
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(msgListJSON)
+	case "POST":
+		err := r.ParseForm()
+		if err != nil {
+			fmt.Println("Error in reading infos from frontend")
+			return
+		}
+		msg := r.FormValue("content")
+		fmt.Println("From frontend, I read", msg)
+		s.sendMessage(msg)
 	}
-	//case POST: send message?
 }
 
 func (s Server) getLatestNodesInfosHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,8 +98,21 @@ func (s Server) getLatestNodesInfosHandler(w http.ResponseWriter, r *http.Reques
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(nodeListJSON)
+	case "POST":
+		err := r.ParseForm()
+		if err != nil {
+			fmt.Println("Error in reading infos from frontend")
+			return
+		}
+		ip := r.FormValue("ip")
+		port := r.FormValue("port")
+		addr, err := net.ResolveUDPAddr("udp4", ip+":"+port)
+		if err != nil {
+			fmt.Println("Error in resolving the address")
+			return
+		}
+		s.gossiper.AddPeer(addr)
 	}
-	//case POST: add node
 }
 
 func (s Server) getPeerIDHandler(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +127,8 @@ func (s Server) getPeerIDHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(idJSON)
+	case "PUT":
+
 	}
 }
 

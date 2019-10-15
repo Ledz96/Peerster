@@ -223,7 +223,7 @@ func (g *Gossiper) broadcastSimpleMessage(packet *gossippacket.GossipPacket, ori
 		_, err = g.udpConn.WriteTo(packetBytes[0:], udpaddr)
 		if err != nil {
 			fmt.Printf("Error in sending the message. Error code: %v\n", err)
-			os.Exit(-1)
+			//os.Exit(-1)
 		}
 	}
 }
@@ -564,7 +564,7 @@ func (g Gossiper) sendPacket(packet *gossippacket.GossipPacket, addr string) {
 	_, err = g.udpConn.WriteTo(packetBytes[0:], udpaddr)
 	if err != nil {
 		fmt.Printf("Error in sending the message. Error code: %v\n", err)
-		os.Exit(-1)
+		//os.Exit(-1)
 	}
 }
 
